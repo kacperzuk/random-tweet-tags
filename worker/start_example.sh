@@ -1,0 +1,9 @@
+#!/bin/bash
+
+export AMQP_CONN_STRING=
+export TWITTER_CONSUMER_KEY=
+export TWITTER_CONSUMER_SECRET=
+export TWITTER_ACCESS_TOKEN_KEY=
+export TWITTER_ACCESS_TOKEN_SECRET=
+
+node index.js

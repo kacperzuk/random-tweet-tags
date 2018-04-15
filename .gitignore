@@ -1,0 +1,10 @@
+*.pyc
+__pycache__/
+*.swp
+start.sh
+start2.sh
+start3.sh
+start4.sh
+start5.sh
+start6.sh
+start7.sh
