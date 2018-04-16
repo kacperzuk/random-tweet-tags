@@ -6,7 +6,6 @@ import sys
 from collections import defaultdict
 
 from common import conn, cur, get_response, ack_response, nack_response, s, get_raw, command, get_raw_nb
-from process_user import process_user
 
 while True:
     N = 1000
@@ -26,6 +25,7 @@ while True:
         hashtags = set([ v["text"].lower() for v in t["entities"]["hashtags"] ])
         fav_count = t["favorite_count"]
         rt_count = t["retweet_count"]
+        cur.execute("insert into number_of_hashtags_tmp (number) values (%s)", (len(hashtags),))
         for hashtag in hashtags:
             cur.execute("""
                 insert into hashtags (hashtag, total_tweets, total_favs, total_rts) values
@@ -55,11 +55,11 @@ while True:
                     tweets_with_both = hashtags_relations.tweets_with_both + 1
             """, {"h1": h1, "h2": h2})
 
-    if metadata["collected"] < N:
+    if metadata["collected"] < N and len(resp["result"]["statuses"]) > 1:
         params = {"max_id": metadata["max_id"]}
         params.update(metadata["params"])
         command("get", "search/tweets", params, "tweets", metadata=metadata)
 
     conn.commit()
     ack_response(meta)
-    print("Processed for q = %s (%s / %s)" % (metadata["params"]["q"], metadata["collected"], N))
+    print("Processed for q = %s (+%s, %s / %s)" % (metadata["params"]["q"], len(resp["result"]["statuses"])-1, metadata["collected"], N))

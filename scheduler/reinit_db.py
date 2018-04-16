@@ -8,6 +8,7 @@ conn = psycopg2.connect("dbname=%s user=%s host=%s password=%s" % (
     os.getenv("PGPASSWORD")))
 
 cur = conn.cursor()
+cur.execute("drop table if exists number_of_hashtags_tmp")
 cur.execute("drop table if exists hashtags_relations")
 cur.execute("drop table if exists hashtags")
 cur.execute("drop table if exists seeds")
@@ -32,4 +33,9 @@ create table hashtags_relations (
     check(h1 < h2),
     primary key(h1, h2)
 )""")
+cur.execute("""
+create table number_of_hashtags_tmp (
+    number int not null
+);
+""")
 conn.commit()

@@ -4,11 +4,6 @@ import sys
 from collections import defaultdict
 
 from common import conn, cur, get_response, ack_response, nack_response, s, get_raw, command, get_raw_nb
-from process_user import process_user
-
-def handle_tweets_for_seed(data):
-    print(data[u])
-    return True
 
 while True:
     meta_seed, seed = get_raw("seeds")
