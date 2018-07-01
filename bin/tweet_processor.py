@@ -33,6 +33,12 @@ while True:
         "combinations": defaultdict(lambda: 0)
     })
 
+    if type(resp["result"]) == dict:
+        if resp["result"] == {} or resp["result"]["code"] == 34:
+            ack_response(meta)
+            continue
+
+
     for t in resp["result"]:
         if cmd_max_id == t["id_str"]:
             continue

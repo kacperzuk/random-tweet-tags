@@ -19,7 +19,7 @@ while True:
     meta, resp = get_response("friends_ids")
 
     if resp["result"] != {}:
-        logging.info("Got friends ids for %s requesting tweets...", resp["metadata"]["parent"])
+        logging.info("Got friends ids for %s (parent_level: %s) requesting tweets...", resp["metadata"]["parent"], resp["metadata"]["parent_level"])
 
         for user_id in resp["result"]["ids"]:
             params = { "user_id": user_id, "count": 200, "trim_user": "true", "include_rts": "false"}
@@ -28,7 +28,7 @@ while True:
 
             if resp["metadata"]["parent_level"] <= 1:
                 params = { "user_id": user_id, "count": 5000, "stringify_ids": True }
-                metadata = { "params": params, "parent": user_id, "parent_level": resp["metadata"]["parent_level"] + 1}
+                metadata = { "params": params, "parent": user_id, "parent_level": resp["metadata"]["parent_level"] + 1 }
                 command("get", "friends/ids", params, "friends_ids", metadata=metadata)
 
         if resp["result"]["next_cursor_str"] != "0":
