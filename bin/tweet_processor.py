@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import time
+import logging
 import os
 import psycopg2
 import json
@@ -14,13 +15,16 @@ sys.path.append(parent_path)
 from common import conn, cur, get_response, ack_response, nack_response, get_raw, command, get_raw_nb
 
 while True:
-    N = 1000
-
-    meta, resp = get_response("tweets")
+    meta, resp = get_response("user_tweets")
     metadata = resp["metadata"]
     if "max_id" not in metadata:
         metadata["max_id"] = None
     cmd_max_id = metadata["max_id"]
+
+    try:
+        log_id = metadata["params"]["user_id"]
+    except KeyError:
+        log_id = metadata["params"]["screen_name"]
 
     to_update = defaultdict(lambda: {
         "favs": 0,
@@ -29,7 +33,7 @@ while True:
         "combinations": defaultdict(lambda: 0)
     })
 
-    for t in resp["result"]["statuses"]:
+    for t in resp["result"]:
         if cmd_max_id == t["id_str"]:
             continue
         if not metadata["max_id"] or t["id_str"] < metadata["max_id"]:
@@ -80,11 +84,15 @@ while True:
                     tweets_with_both = hashtags_relations.tweets_with_both + %(c)s
             """, {"h1": h1, "h2": h2, "c": c})
 
-    if metadata["collected"] < N and len(resp["result"]["statuses"]) > 1:
+    logging.info("Processed %s (+%s) tweets for uid %s" % (metadata["collected"], len(resp["result"])-1, log_id))
+
+    if len(resp["result"]) > 1:
         params = {"max_id": metadata["max_id"]}
         params.update(metadata["params"])
-        command("get", "search/tweets", params, "tweets", metadata=metadata)
+        command("get", "statuses/user_timeline", params, "user_tweets", metadata=metadata)
+        logging.info("Requesting next page of tweets for uid %s", log_id)
+    else:
+        logging.info("Finished fetching tweets for uid %s", log_id)
 
     conn.commit()
     ack_response(meta)
-    print("Processed for q = %s (+%s, %s / %s)" % (metadata["params"]["q"], len(resp["result"]["statuses"])-1, metadata["collected"], N))

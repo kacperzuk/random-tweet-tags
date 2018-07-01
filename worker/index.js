@@ -1,5 +1,6 @@
 const Twitter = require('twitter')
 const amqp = require('amqplib/callback_api')
+const supported_endpoints = ["statuses/user_timeline", "friends/ids"]
 
 var amqpConn = null;
 var pubChannel = null;
@@ -59,10 +60,12 @@ function startWorker() {
     });
 
     ch.prefetch(1);
-    ch.assertQueue("twitter_jobs", { durable: true, auto_delete: false }, function(err, _ok) {
+    supported_endpoints.forEach((endpoint) => {
+      ch.assertQueue("twitter_jobs:"+endpoint, { durable: true, auto_delete: false }, function(err, _ok) {
         if (closeOnErr(err)) return;
-        console.log("consume twitter_jobs")
-        ch.consume("twitter_jobs", processMsg, { noAck: false });
+        console.log("consume twitter_jobs:"+endpoint)
+        ch.consume("twitter_jobs:"+endpoint, processMsg, { noAck: false });
+      });
     });
   });
 }
@@ -167,7 +170,7 @@ async function work(msg, cb) {
             gch.cancel(msg.fields.consumerTag)
             cb(false)
             setTimeout(() => {
-                gch.consume("jobs_"+cmd.tag, processMsg, { noAck: false });
+                gch.consume("twitter_jobs:"+cmd.path, processMsg, { noAck: false });
             }, 60*1000)
             return
         } else if(error.some(e => e.code == 34 || e.code == 50)) {

@@ -27,9 +27,9 @@ def command(method, path, params, reply_to, metadata=None):
         "reply_to": reply_to
     })
     responses.queue_declare(queue=reply_to, durable=True, auto_delete=False)
-    jobs.queue_declare(queue='twitter_jobs', durable=True, auto_delete=False) # Declare a queue
+    jobs.queue_declare(queue='twitter_jobs:'+path, durable=True, auto_delete=False) # Declare a queue
     jobs.basic_publish(exchange='',
-            routing_key='twitter_jobs',
+            routing_key='twitter_jobs:'+path,
             body=cmd)
 
 def get_response(queue):
@@ -60,3 +60,9 @@ def ack_response(meta):
 
 def nack_response(meta):
     responses.basic_nack(meta.delivery_tag)
+
+def download_user(screen_name):
+    raw.queue_declare(queue='users_to_download', durable=True, auto_delete=False)
+    raw.basic_publish(exchange='',
+            routing_key='users_to_download',
+            body=json.dumps(screen_name))
