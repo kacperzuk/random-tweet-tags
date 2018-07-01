@@ -1,7 +1,13 @@
+#!/usr/bin/env python3
+
 import sys
+import os
 import json
 
-from common import conn, cur, raw
+parent_path = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(parent_path)
+
+from common import conn, raw
 
 def log_in_db(pgconn, seed):
     cur = pgconn.cursor()

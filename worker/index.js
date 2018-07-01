@@ -1,11 +1,10 @@
 const Twitter = require('twitter')
 const amqp = require('amqplib/callback_api')
-const tags = ["tweets", "users"]
 
 var amqpConn = null;
 var pubChannel = null;
 function start() {
-  amqp.connect(process.env.AMQP_CONN_STRING+"?heartbeat=60", async function(err, conn) {
+  amqp.connect(process.env.AMQP_CONNECTION_STRING+"?heartbeat=30", async function(err, conn) {
     if (err) {
       console.error("[AMQP]", err.message);
       return setTimeout(start, 1000);
@@ -60,12 +59,10 @@ function startWorker() {
     });
 
     ch.prefetch(1);
-    tags.forEach((t) => {
-        ch.assertQueue("jobs_"+t, { durable: true, auto_delete: false }, function(err, _ok) {
-            if (closeOnErr(err)) return;
-            console.log("consume "+t)
-            ch.consume("jobs_"+t, processMsg, { noAck: false });
-        });
+    ch.assertQueue("twitter_jobs", { durable: true, auto_delete: false }, function(err, _ok) {
+        if (closeOnErr(err)) return;
+        console.log("consume twitter_jobs")
+        ch.consume("twitter_jobs", processMsg, { noAck: false });
     });
   });
 }
@@ -132,11 +129,8 @@ const t = gett();
 function send_response(cmd, result) {
     console.log(new Date(), "Processed command: ", JSON.stringify(cmd).substr(0, 80))
     const resp = { metadata: cmd.metadata, tag: cmd.tag, result }
-    let rep_tag = "responses_"+cmd.tag;
-    if (cmd.reply_to) {
-        rep_tag = cmd.reply_to
-    }
-    pubChannel.publish("", rep_tag, new Buffer(JSON.stringify(resp)), { persistent: true },
+    const resp_tag = cmd.reply_to;
+    pubChannel.publish("", resp_tag, new Buffer(JSON.stringify(resp)), { persistent: true },
         function(err, ok) {
             if (err) {
                 console.error("[AMQP] publish", err);
@@ -176,7 +170,7 @@ async function work(msg, cb) {
                 gch.consume("jobs_"+cmd.tag, processMsg, { noAck: false });
             }, 60*1000)
             return
-        } else if(error.some(e => e.code == 34)) {
+        } else if(error.some(e => e.code == 34 || e.code == 50)) {
             send_response(cmd, error[0])
         } else {
             cb(false)
@@ -188,4 +182,8 @@ async function work(msg, cb) {
     cb(true)
 }
 
+console.log("Starting with:")
+console.log("TWITTER_CONSUMER_KEY="+process.env.TWITTER_CONSUMER_KEY)
+console.log("TWITTER_CONSUMER_SECRET="+process.env.TWITTER_CONSUMER_SECRET)
+console.log("AMQP_CONNECTION_STRING"+process.env.AMQP_CONNECTION_STRING)
 start()

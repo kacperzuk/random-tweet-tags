@@ -1,9 +1,15 @@
+#!/usr/bin/env python3
+
 import time
+import os
 import json
 import sys
 from collections import defaultdict
 
-from common import conn, cur, get_response, ack_response, nack_response, s, get_raw, command, get_raw_nb
+parent_path = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(parent_path)
+
+from common import conn, cur, get_response, ack_response, nack_response, get_raw, command, get_raw_nb
 
 while True:
     meta_seed, seed = get_raw("seeds")
@@ -20,7 +26,7 @@ while True:
         params = {"q": seed, "result_type": "recent", "count": 100}
         if max_id:
             params["max_id"] = max_id
-        command("get", "search/tweets", params, "tweets", metadata=metadata, reply_to="seed_"+seed)
+        command("get", "search/tweets", params, "seed_"+seed, metadata=metadata)
         meta_tweets, resp = get_raw("seed_"+seed)
     metadata = resp["metadata"]
     while True:
@@ -46,14 +52,13 @@ while True:
         params = {"q": seed, "result_type": "recent", "count": 100}
         if max_id:
             params["max_id"] = max_id
-        command("get", "search/tweets", params, "tweets", metadata=metadata, reply_to="seed_"+seed)
+        command("get", "search/tweets", params, "seed_"+seed, metadata=metadata)
         meta_tweets, resp = get_raw("seed_"+seed)
         metadata = resp["metadata"]
     top_hashtags = sorted(metadata["ht_counters"].items(), reverse=True, key=lambda x: x[1])[:1000]
     for (hashtag, t) in top_hashtags:
         params = {"q": "#"+hashtag, "result_type": "recent", "count": 100}
         command("get", "search/tweets", params, "tweets", metadata={"collected": 0, "params": params})
-        cur.execute("insert into hashtags (hashtag) values (%s) on conflict (hashtag) do nothing", (hashtag,))
     cur.execute("update seeds set processed = 't' where seed = %s", (seed,))
     conn.commit()
     ack_response(meta_seed)

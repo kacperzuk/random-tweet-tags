@@ -8,3 +8,6 @@ start4.sh
 start5.sh
 start6.sh
 start7.sh
+vars.sh
+services.ini
+run
