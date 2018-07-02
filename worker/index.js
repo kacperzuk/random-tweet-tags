@@ -1,4 +1,6 @@
 const Twitter = require('twitter')
+const StatsD = require('node-statsd')
+const cs = new StatsD()
 const amqp = require('amqplib/callback_api')
 const supported_endpoints = ["statuses/user_timeline", "friends/ids"]
 
@@ -117,11 +119,19 @@ function gett() {
         },
         get: async (path, params) => {
             if (!t.client) await t.init()
-            return await t.client.get(path, params);
+            let tim = process.hrtime();
+            const r = await t.client.get(path, params);
+            tim = process.hrtime(tim);
+            cs.timing("twitter_worker.req", tim[0]*1000 + tim[1]/1000/1000);
+            return r;
         },
         post: async (path, params) => {
             if (!t.client) await t.init()
-            return await t.client.post(path, params);
+            let tim = process.hrtime();
+            const r = await t.client.post(path, params);
+            tim = process.hrtime(tim);
+            cs.timing("twitter_worker.req", tim[0]*1000 + tim[1]/1000/1000);
+            return r;
         }
     };
     return t;

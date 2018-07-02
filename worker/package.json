@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "amqplib": "^0.5.1",
+    "node-statsd": "^0.1.1",
     "oauth": "^0.9.15",
     "twitter": "^1.7.1"
   }
