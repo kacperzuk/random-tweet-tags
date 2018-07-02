@@ -18,7 +18,7 @@ while True:
     logging.info("Waiting for data from 'friends_ids' queue...")
     meta, resp = get_response("friends_ids")
 
-    if resp["result"] != {}:
+    if resp["result"] != {} and not ("code" in resp["result"] and resp["result"]["code"] == 34):
         logging.info("Got friends ids for %s (parent_level: %s) requesting tweets...", resp["metadata"]["parent"], resp["metadata"]["parent_level"])
 
         for user_id in resp["result"]["ids"]:
