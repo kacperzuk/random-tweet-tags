@@ -73,6 +73,7 @@ function startWorker() {
 }
 
 function processMsg(msg) {
+  if(!msg) console.error(new Date(), "GREPME", "Canceled by RabbitMQ");
   work(msg, function(ok) {
     try {
       if (ok)
@@ -177,15 +178,18 @@ async function work(msg, cb) {
     } else if(error && error.some) {
         if(error.some(e => e.code == 88)) {
             console.warn(new Date(), "Got rate limit error, sleeping for minute...")
+            cs.increment("twitter_worker.ratelimited", 1);
             gch.cancel(msg.fields.consumerTag)
             cb(false)
             setTimeout(() => {
-                gch.consume("twitter_jobs:"+cmd.path, processMsg, { noAck: false });
+                console.log(new Date(), "Restarting consume")
+                gch.consume("twitter_jobs:"+cmd.path, processMsg, { noAck: false }, (err, ok) => { if(err) console.error(new Date(), "GREPME", err)});
             }, 60*1000)
             return
         } else if(error.some(e => e.code == 34 || e.code == 50)) {
             send_response(cmd, error[0])
         } else {
+            console.log(new Date(), "Unknown error 1")
             cb(false)
             return
         }
