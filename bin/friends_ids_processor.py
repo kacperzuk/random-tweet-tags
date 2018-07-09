@@ -13,7 +13,7 @@ from collections import defaultdict
 parent_path = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(parent_path)
 
-from common import get_response, ack_response, nack_response, get_raw, command, get_raw_nb
+from common import conn, cur, get_response, ack_response, nack_response, get_raw, command, get_raw_nb
 
 c = statsd.StatsClient('localhost', 8125, prefix='friends_ids_processor')
 while True:
@@ -25,14 +25,17 @@ while True:
             logging.info("Got friends ids for %s (parent_level: %s) requesting tweets...", resp["metadata"]["parent"], resp["metadata"]["parent_level"])
 
             for user_id in resp["result"]["ids"]:
+                cur.execute("insert into users (twid) values (%s) returning id", (user_id,))
+                uid = cur.fetchone()[0]
                 params = { "user_id": user_id, "count": 200, "trim_user": "true", "include_rts": "false"}
-                metadata = { "params": params, "collected": 0}
+                metadata = { "params": params, "collected": 0, "hashtags": {}, "user_id": uid}
                 command("get", "statuses/user_timeline", params, "user_tweets", metadata=metadata)
 
                 if resp["metadata"]["parent_level"] <= 1:
                     params = { "user_id": user_id, "count": 5000, "stringify_ids": True }
                     metadata = { "params": params, "parent": user_id, "parent_level": resp["metadata"]["parent_level"] + 1 }
                     command("get", "friends/ids", params, "friends_ids", metadata=metadata)
+            conn.commit()
 
             if resp["result"]["next_cursor_str"] != "0":
                 resp["metadata"]["params"]["cursor"] = resp["result"]["next_cursor_str"]

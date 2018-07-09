@@ -2,7 +2,7 @@ const Twitter = require('twitter')
 const StatsD = require('node-statsd')
 const cs = new StatsD()
 const amqp = require('amqplib/callback_api')
-const supported_endpoints = ["statuses/user_timeline", "friends/ids"]
+const supported_endpoints = ["statuses/user_timeline", "friends/ids", "users/show"]
 
 var amqpConn = null;
 var pubChannel = null;

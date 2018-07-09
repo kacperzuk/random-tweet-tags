@@ -66,6 +66,9 @@ while True:
 
         c.incr("hashtags_upserts", len(to_update.keys()))
         for hashtag, var in ( (k, to_update[k]) for k in sorted(to_update.keys()) ):
+            if hashtag not in metadata["hashtags"]:
+                metadata["hashtags"][hashtag] = 0
+            metadata["hashtags"][hashtag] += var["count"]
             cur.execute("""
                 insert into hashtags (hashtag, total_tweets, total_favs, total_rts) values
                     (%(hashtag)s, 1, %(favs)s, %(rts)s)
@@ -106,6 +109,9 @@ while True:
             command("get", "statuses/user_timeline", params, "user_tweets", metadata=metadata)
             logging.info("Requesting next page of tweets for uid %s", log_id)
         else:
+            for h, c in metadata["hashtags"].items():
+                cur.execute("insert into user_hashtags (uid, hashtag, number_of_tweets) values (%s, %s, %s) on conflict do nothing", (metadata["user_id"], h, c))
+            cur.execute("update users set finished_tweets = 't' where id = %s", (metadata["user_id"],))
             logging.info("Finished fetching tweets for uid %s", log_id)
 
         with c.timer("pgcommit"):
